@@ -4,6 +4,7 @@
 package integrationtests
 
 import (
+	"bytes"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -28,7 +29,12 @@ func TestFixes(t *testing.T) {
 
 	fixCmd := exec.Command(`./test_binary`, `-fix`, `./testdata`)
 	out, err = fixCmd.CombinedOutput()
-	require.NoError(t, err, string(out))
+
+	gitRestorePathOnCleanup(t, `./testdata`)
+
+	// We expect an error because the program exits with code 3 when it finds things.
+	assert.Error(t, err)
+	assert.Equal(t, 3, fixCmd.ProcessState.ExitCode(), `unexpected error: %v`, err)
 
 	exps := getExpectationLoaders()
 	for name, loadExpBytes := range exps {
@@ -37,8 +43,19 @@ func TestFixes(t *testing.T) {
 
 		expBytes := loadExpBytes(t)
 
-		assert.Equal(t, string(expBytes), string(actual))
+		assert.Equal(
+			t,
+			string(trimBuildTag(t, expBytes)),
+			string(trimBuildTag(t, actual)),
+		)
 	}
+}
+
+func trimBuildTag(t *testing.T, bs []byte) []byte {
+	ln, rest, ok := bytes.Cut(bs, []byte("\n"))
+	require.True(t, ok, `expected to find a newline`)
+	require.True(t, bytes.HasPrefix(ln, []byte("//go:build")), `expected first line to contain a build tag`)
+	return rest
 }
 
 func getExpectationLoaders() map[string]func(t *testing.T) []byte {
@@ -64,4 +81,13 @@ func getExpectationLoaders() map[string]func(t *testing.T) []byte {
 	})
 
 	return res
+}
+
+func gitRestorePathOnCleanup(t *testing.T, path string) {
+	t.Helper()
+
+	t.Cleanup(func() {
+		out, err := exec.Command(`git`, `restore`, path).CombinedOutput()
+		require.NoError(t, err, `restore failed: %v`, string(out))
+	})
 }
