@@ -34,7 +34,7 @@ func TestFixes(t *testing.T) {
 
 	// We expect an error because the program exits with code 3 when it finds things.
 	assert.Error(t, err)
-	assert.Equal(t, 3, fixCmd.ProcessState.ExitCode(), `unexpected error: %v`, err)
+	assert.Equal(t, 3, fixCmd.ProcessState.ExitCode(), "unexpected error: %v\noutput:\n%s", err, string(out))
 
 	exps := getExpectationLoaders()
 	for name, loadExpBytes := range exps {
