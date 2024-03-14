@@ -5,11 +5,19 @@ package testdata
 import "fmt"
 
 func slice() {
-	// simple case
 	for i, v := range []int{1, 2, 3} {
 		i := i
 		v := v
 
 		fmt.Println(i, v)
+	}
+}
+
+func aMap() {
+	for k, v := range map[string]int{} {
+		k := k
+		v := v
+
+		fmt.Println(k, v)
 	}
 }
