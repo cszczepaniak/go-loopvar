@@ -21,3 +21,12 @@ func aMap() {
 		fmt.Println(k, v)
 	}
 }
+
+func rename() {
+	for i, v := range []int{1, 2, 3} {
+		index := i
+		val := v
+
+		fmt.Println(index, val)
+	}
+}
