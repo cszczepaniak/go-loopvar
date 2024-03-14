@@ -17,7 +17,7 @@ func main() {
 var a = &analysis.Analyzer{
 	Name:     `loopvar`,
 	Run:      run,
-	Doc:      `something`,
+	Doc:      `Detects loop variables that are unnecessarily captured (as of Go 1.22)`,
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
 
@@ -38,10 +38,6 @@ func run(p *analysis.Pass) (any, error) {
 			}
 
 			ast.Inspect(stmt, func(n ast.Node) bool {
-				if _, ok := n.(*ast.BlockStmt); ok {
-					// Don't recurse into block stmts?
-					// return false
-				}
 				ident, ok := n.(*ast.Ident)
 				if ok {
 					r.handleIdent(ident)
@@ -108,7 +104,7 @@ func (r *replacer) handleIdent(ident *ast.Ident) {
 	}
 
 	diag.SuggestedFixes = append(diag.SuggestedFixes, analysis.SuggestedFix{
-		Message: `baz`,
+		Message: `replace this variable with the loop variable`,
 		TextEdits: []analysis.TextEdit{{
 			Pos:     ident.Pos(),
 			End:     ident.End(),
@@ -136,9 +132,9 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt) {
 	diag := analysis.Diagnostic{
 		Pos:     a.Pos(),
 		End:     a.End(),
-		Message: `found a for-range loop shadowed var`,
+		Message: `found unnecessary loop variable capture`,
 		SuggestedFixes: []analysis.SuggestedFix{{
-			Message: `foobar`,
+			Message: `remove the assignment`,
 			TextEdits: []analysis.TextEdit{{
 				Pos:     a.Pos(),
 				End:     a.End(),
