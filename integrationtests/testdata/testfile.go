@@ -35,11 +35,19 @@ func multiAssign() {
 	}
 }
 
-func trickyMultiAssign() {
+func trickyMultiAssign0() {
 	for i, v := range []int{1, 2, 3} {
 		_, anotherVar, val := i, 123, v
 
 		fmt.Println(i, val, anotherVar)
+	}
+}
+
+func trickyMultiAssign1() {
+	for i, v := range []int{1, 2, 3} {
+		_, index, anotherVar, val := 456, i, 123, v
+
+		fmt.Println(index, val, anotherVar)
 	}
 }
 
