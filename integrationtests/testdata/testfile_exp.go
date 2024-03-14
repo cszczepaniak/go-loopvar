@@ -34,6 +34,16 @@ func trickyMultiAssign() {
 	}
 }
 
+func trickyMultiAssign2() {
+	for _, v := range []int{1, 2, 3} {
+		_ = func() int {
+			return 1
+		}()
+
+		fmt.Println(v)
+	}
+}
+
 func wasABugBeforeGo122() {
 	for i, v := range []int{1, 2, 3} {
 		go func() {
