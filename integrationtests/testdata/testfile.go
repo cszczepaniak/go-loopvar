@@ -59,6 +59,56 @@ func trickyMultiAssign2() {
 	}
 }
 
+func variableIsIncrementedLater() {
+	for i, v := range []int{1, 2, 3} {
+		incrementing, variable := i, v
+
+		incrementing++
+
+		fmt.Println(incrementing, variable)
+	}
+}
+
+func variableIsDecrementedLater() {
+	for i, v := range []int{1, 2, 3} {
+		decrementing, variable := i, v
+
+		decrementing--
+
+		fmt.Println(decrementing, variable)
+	}
+}
+
+func variableIsPlusAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		incrementing, variable := i, v
+
+		incrementing += 123
+
+		fmt.Println(incrementing, variable)
+	}
+}
+
+func variableIsMinusAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		decrementing, variable := i, v
+
+		decrementing -= 123
+
+		fmt.Println(decrementing, variable)
+	}
+}
+
+func variableIsSimplyAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		assigned, variable := i, v
+
+		assigned = 123
+
+		fmt.Println(assigned, variable)
+	}
+}
+
 func wasABugBeforeGo122() {
 	for i, v := range []int{1, 2, 3} {
 		go func() {
