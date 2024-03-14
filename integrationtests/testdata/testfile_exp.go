@@ -21,3 +21,27 @@ func rename() {
 		fmt.Println(i, v)
 	}
 }
+
+func address() {
+	vals := []*int{}
+	for _, v := range []int{1, 2, 3} {
+		vals = append(vals, &v)
+	}
+	_ = vals
+}
+
+func addressRename() {
+	vals := []*int{}
+	for _, v := range []int{1, 2, 3} {
+		vals = append(vals, &v)
+	}
+	_ = vals
+}
+
+func renameInGoroutine() {
+	for i, v := range []int{1, 2, 3} {
+		go func() {
+			fmt.Println(i, v)
+		}()
+	}
+}

@@ -30,3 +30,32 @@ func rename() {
 		fmt.Println(index, val)
 	}
 }
+
+func address() {
+	vals := []*int{}
+	for _, v := range []int{1, 2, 3} {
+		v := v
+		vals = append(vals, &v)
+	}
+	_ = vals
+}
+
+func addressRename() {
+	vals := []*int{}
+	for _, v := range []int{1, 2, 3} {
+		myValue := v
+		vals = append(vals, &myValue)
+	}
+	_ = vals
+}
+
+func renameInGoroutine() {
+	for i, v := range []int{1, 2, 3} {
+		index := i
+		val := v
+
+		go func() {
+			fmt.Println(index, val)
+		}()
+	}
+}
