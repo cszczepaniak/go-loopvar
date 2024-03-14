@@ -70,3 +70,36 @@ func renameInGoroutine() {
 		}()
 	}
 }
+
+func kitchenSink() {
+	for i1, v1 := range []int{1, 2, 3} {
+		i1 := i1
+		val1 := v1
+
+		for i2, v2 := range []string{"foo", "bar"} {
+			// I'm not sure how we should handle such captures... I don't expect they'll be common,
+			// though.
+			varA := i1
+			anothaOne := v2
+
+			go func() {
+				for i3, v3 := range map[int]int{} {
+					my3 := i3
+					v3 := v3
+
+					fmt.Println(
+						i2,
+						i1,
+						val1,
+						v1,
+						my3,
+						v3*(my3+i1-val1+v3),
+						anothaOne,
+						varA,
+						v2,
+					)
+				}
+			}()
+		}
+	}
+}
