@@ -30,10 +30,20 @@ func run(p *analysis.Pass) (any, error) {
 		}
 
 		r := newReplacer(f.Key, f.Value)
-		for _, stmt := range f.Body.List {
+		for i, stmt := range f.Body.List {
 			assn, ok := stmt.(*ast.AssignStmt)
 			if ok && assn.Tok == token.DEFINE {
-				r.handleAssignment(assn)
+				var nextPos token.Pos
+				if i < len(f.Body.List)-1 {
+					// This isn't the last statement in the list. Look at the beginning of the next one.
+					nextPos = f.Body.List[i+1].Pos()
+				} else {
+					// It shouldn't be possible for an assignment to be the last thing in the loop.
+					// If it were, it'd be unused and the compiler would complain.
+					panic(`dev error: should not encounter a shadowed assignment at the end of the list`)
+				}
+
+				r.handleAssignment(assn, nextPos)
 				continue
 			}
 
@@ -115,7 +125,7 @@ func (r *replacer) handleIdent(ident *ast.Ident) {
 	r.diagsByVar[ident.Name] = diag
 }
 
-func (r *replacer) handleAssignment(a *ast.AssignStmt) {
+func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) {
 	if len(a.Rhs) != 1 {
 		// TODO we should also handle multiple-assignments
 		return
@@ -136,8 +146,10 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt) {
 		SuggestedFixes: []analysis.SuggestedFix{{
 			Message: `remove the assignment`,
 			TextEdits: []analysis.TextEdit{{
-				Pos:     a.Pos(),
-				End:     a.End(),
+				Pos: a.Pos(),
+				// Use the end of the assignment. We'll try to update it later to remove any
+				// trailing whitespace leading up to the next statement in the loop.
+				End:     nextPos,
 				NewText: nil,
 			}},
 		}},
