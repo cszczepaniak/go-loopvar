@@ -126,14 +126,28 @@ func (r *replacer) handleIdent(ident *ast.Ident) {
 }
 
 func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) {
-	if len(a.Rhs) != 1 {
-		// TODO we should also handle multiple-assignments
-		return
+	removeAll := true
+	rhsNames := make([]string, 0, len(a.Rhs))
+	for _, rhs := range a.Rhs {
+		rhsIdent, ok := rhs.(*ast.Ident)
+		if !ok {
+			// One of the RHS items was not an identifier. TODO: handle this more complex case. This
+			// could be something like:
+			// a, b, c := a, fn(123), c
+			removeAll = false
+			break
+		}
+
+		rhsNames = append(rhsNames, rhsIdent.Name)
+
+		if !r.shadowsRangeVar(rhsIdent.Name) {
+			removeAll = false
+			break
+		}
 	}
 
-	rhsIdent, ok := a.Rhs[0].(*ast.Ident)
-	if !ok || !r.shadowsRangeVar(rhsIdent.Name) {
-		// If the RHS isn't an identifier or it doesn't shadow a range var, don't do anything.
+	if !removeAll {
+		// TODO we should also handle this more complex case
 		return
 	}
 
@@ -155,27 +169,26 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) {
 		}},
 	}
 
-	if a.Lhs[0] == nil {
-		return
+	for i, lhs := range a.Lhs {
+		if lhs == nil {
+			continue
+		}
+
+		lhsIdent, ok := lhs.(*ast.Ident)
+		if !ok {
+			// Somehow we don't have an identifier on the left-hand side.
+			continue
+		}
+
+		// map the diagnostic by the LHS name. That way when we encounter usages of the LHS var, we can
+		// index back into this to add more suggested fixes.
+		r.diagsByVar[lhsIdent.Name] = diag
+
+		// If the lefthand side's name is the same as a range var, we just need to remove the
+		// assignment, no need to replace anything else. Otherwise, a new variable shadows the range
+		// var. Every subsequent usage of this var should be replaced with the range var.
+		if lhsIdent.Name != rhsNames[i] {
+			r.identReplacements[lhsIdent.Name] = rhsNames[i]
+		}
 	}
-
-	lhsIdent, ok := a.Lhs[0].(*ast.Ident)
-	if !ok {
-		// Somehow we don't have an identifier on the left-hand side.
-		return
-	}
-
-	// map the diagnostic by the LHS name. That way when we encounter usages of the LHS var, we can
-	// index back into this to add more suggested fixes.
-	r.diagsByVar[lhsIdent.Name] = diag
-
-	// If the lefthand side's name is the same as a range var, we just need to remove the
-	// assignment, no need to replace anything else.
-	if lhsIdent.Name == rhsIdent.Name {
-		return
-	}
-
-	// Otherwise, a new variable shadows the range var. Every subsequent usage of this var should be
-	// replaced with the range var.
-	r.identReplacements[lhsIdent.Name] = rhsIdent.Name
 }
