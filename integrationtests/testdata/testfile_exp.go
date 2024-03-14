@@ -10,6 +10,16 @@ func slice() {
 	}
 }
 
+func statementsInBetween() {
+	for i, v := range []int{1, 2, 3} {
+		for range 10 {
+		}
+
+		go func() {}()
+		fmt.Println(i, v)
+	}
+}
+
 func muchWhitespace() {
 	for i, v := range []int{1, 2, 3} {
 
