@@ -20,6 +20,16 @@ func statementsInBetween() {
 	}
 }
 
+func wasABugBeforeGo122() {
+	for i, v := range []int{1, 2, 3} {
+		go func() {
+			fmt.Println(i, v)
+		}()
+
+		fmt.Println(i, v)
+	}
+}
+
 func muchWhitespace() {
 	for i, v := range []int{1, 2, 3} {
 
