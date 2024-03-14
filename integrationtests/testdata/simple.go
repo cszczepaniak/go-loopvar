@@ -1,3 +1,5 @@
+//go:build !exp
+
 package testdata
 
 import "fmt"
