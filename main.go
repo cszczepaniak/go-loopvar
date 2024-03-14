@@ -2,7 +2,9 @@ package main
 
 import (
 	"go/ast"
+	"go/format"
 	"go/token"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -57,7 +59,7 @@ func run(p *analysis.Pass) (any, error) {
 		}
 
 		for _, diag := range r.diagsByVar {
-			p.Report(diag)
+			p.Report(*diag)
 		}
 	})
 
@@ -71,7 +73,7 @@ type replacer struct {
 	// vars)
 	identReplacements map[string]string
 	// map from range var name to diagnostic
-	diagsByVar map[string]analysis.Diagnostic
+	diagsByVar map[string]*analysis.Diagnostic
 }
 
 func newReplacer(rangeVars ...ast.Node) *replacer {
@@ -88,7 +90,7 @@ func newReplacer(rangeVars ...ast.Node) *replacer {
 	return &replacer{
 		rangeVars:         rangeVarNames,
 		identReplacements: make(map[string]string),
-		diagsByVar:        make(map[string]analysis.Diagnostic),
+		diagsByVar:        make(map[string]*analysis.Diagnostic),
 	}
 }
 
@@ -125,51 +127,44 @@ func (r *replacer) handleIdent(ident *ast.Ident) {
 	r.diagsByVar[ident.Name] = diag
 }
 
-func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) {
-	removeAll := true
-	rhsNames := make([]string, 0, len(a.Rhs))
-	for _, rhs := range a.Rhs {
-		rhsIdent, ok := rhs.(*ast.Ident)
-		if !ok {
-			// One of the RHS items was not an identifier. TODO: handle this more complex case. This
-			// could be something like:
-			// a, b, c := a, fn(123), c
-			removeAll = false
-			break
-		}
+func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) error {
+	var newLhs, newRhs []ast.Expr
 
-		rhsNames = append(rhsNames, rhsIdent.Name)
-
-		if !r.shadowsRangeVar(rhsIdent.Name) {
-			removeAll = false
-			break
-		}
-	}
-
-	if !removeAll {
-		// TODO we should also handle this more complex case
-		return
-	}
-
-	// Okay, we found somebody capturing the range var. We'll report this and suggest removing the
-	// assignment.
-	diag := analysis.Diagnostic{
+	// Preemptively assign this in case we need it :pokerface:
+	diag := &analysis.Diagnostic{
 		Pos:     a.Pos(),
 		End:     a.End(),
 		Message: `found unnecessary loop variable capture`,
 		SuggestedFixes: []analysis.SuggestedFix{{
-			Message: `remove the assignment`,
+			Message: `remove the unnecessary assignments`,
 			TextEdits: []analysis.TextEdit{{
 				Pos: a.Pos(),
-				// Use the end of the assignment. We'll try to update it later to remove any
-				// trailing whitespace leading up to the next statement in the loop.
+				// Setting nextPos and nil here for now. If we're not removing the entire
+				// assignment, we'll need to update End to not consume the newlines leading up to
+				// the next statement, and update NewText to simply replace it with the assignments
+				// we're not removing.
 				End:     nextPos,
 				NewText: nil,
 			}},
 		}},
 	}
 
-	for i, lhs := range a.Lhs {
+	for i, rhs := range a.Rhs {
+		lhs := a.Lhs[i]
+
+		rhsIdent, ok := rhs.(*ast.Ident)
+		if !ok || !r.shadowsRangeVar(rhsIdent.Name) {
+			// One of the RHS items was not an identifier. This could be something like:
+			// a, b, c := a, fn(123), c
+			newLhs = append(newLhs, lhs)
+			newRhs = append(newRhs, rhs)
+			continue
+		}
+
+		// If the RHS does shadow a loop var, we need to map the RHS name to the LHS name so we can
+		// subsequently replace usages of the variable.
+
+		// LHS should never be nil.
 		if lhs == nil {
 			continue
 		}
@@ -187,8 +182,59 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) {
 		// If the lefthand side's name is the same as a range var, we just need to remove the
 		// assignment, no need to replace anything else. Otherwise, a new variable shadows the range
 		// var. Every subsequent usage of this var should be replaced with the range var.
-		if lhsIdent.Name != rhsNames[i] {
-			r.identReplacements[lhsIdent.Name] = rhsNames[i]
+		if lhsIdent.Name != rhsIdent.Name {
+			r.identReplacements[lhsIdent.Name] = rhsIdent.Name
 		}
 	}
+
+	if len(newLhs) > 0 {
+		allUnderscore := true
+		for _, lhs := range newLhs {
+			if !isUnderscoreIdent(lhs) {
+				allUnderscore = false
+				break
+			}
+		}
+
+		var tok token.Token
+		if allUnderscore {
+			// If everything on the LHS, we _must_ use `=` as our token, or we'll produce code that
+			// doesn't compile. That is, the following doesn't compile:
+			//   _, _ := 1, 2
+			// ...But this does:
+			//   _, _ = 1, 2
+			tok = token.ASSIGN
+		} else {
+			tok = a.Tok
+		}
+
+		// In this case, we're not completely removing the assignment. We need to synthesize the new
+		// content.
+		newAssign := &ast.AssignStmt{
+			Lhs: newLhs,
+			Tok: tok,
+			Rhs: newRhs,
+		}
+
+		sb := &strings.Builder{}
+		err := format.Node(sb, token.NewFileSet(), newAssign)
+		if err != nil {
+			return err
+		}
+
+		// In this case, we're not deleting the entire line. Reset the End token to the current end
+		// of the assignment.
+		diag.SuggestedFixes[0].TextEdits[0].End = a.End()
+		diag.SuggestedFixes[0].TextEdits[0].NewText = []byte(sb.String())
+	}
+
+	return nil
+}
+
+func isUnderscoreIdent(n ast.Node) bool {
+	if n == nil {
+		return false
+	}
+	ident, ok := n.(*ast.Ident)
+	return ok && ident.Name == `_`
 }
