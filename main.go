@@ -45,7 +45,7 @@ func run(p *analysis.Pass) (any, error) {
 					panic(`dev error: should not encounter a shadowed assignment at the end of the list`)
 				}
 
-				r.handleAssignment(assn, nextPos)
+				r.handleAssignment(f.Body.List[i+1:], assn, nextPos)
 				continue
 			}
 
@@ -127,7 +127,7 @@ func (r *replacer) handleIdent(ident *ast.Ident) {
 	r.diagsByVar[ident.Name] = diag
 }
 
-func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) error {
+func (r *replacer) handleAssignment(restOfLoop []ast.Stmt, a *ast.AssignStmt, nextPos token.Pos) error {
 	var newLhs, newRhs []ast.Expr
 
 	// Preemptively assign this in case we need it :pokerface:
@@ -172,6 +172,15 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) error 
 		lhsIdent, ok := lhs.(*ast.Ident)
 		if !ok {
 			// Somehow we don't have an identifier on the left-hand side.
+			continue
+		}
+
+		// We have a loop variable being assigned to a different identifier. One last check: we have
+		// to make sure that the new binding is never assigned to. If it is, we should keep the
+		// assignment.
+		if isMutated(restOfLoop, lhsIdent) {
+			newLhs = append(newLhs, lhs)
+			newRhs = append(newRhs, rhs)
 			continue
 		}
 
@@ -231,10 +240,61 @@ func (r *replacer) handleAssignment(a *ast.AssignStmt, nextPos token.Pos) error 
 	return nil
 }
 
-func isUnderscoreIdent(n ast.Node) bool {
+func isMutated(stmts []ast.Stmt, ident *ast.Ident) (mut bool) {
+	for _, stmt := range stmts {
+		foundMutation := false
+		ast.Inspect(stmt, func(n ast.Node) bool {
+			switch tn := n.(type) {
+			case *ast.IncDecStmt:
+				if isMatchingIdent(tn.X, ident) {
+					foundMutation = true
+					return false
+				}
+			case *ast.AssignStmt:
+				switch tn.Tok {
+				case token.ASSIGN,
+					token.ADD_ASSIGN,
+					token.SUB_ASSIGN,
+					token.MUL_ASSIGN,
+					token.QUO_ASSIGN,
+					token.REM_ASSIGN,
+					token.AND_ASSIGN,
+					token.OR_ASSIGN,
+					token.XOR_ASSIGN,
+					token.SHL_ASSIGN,
+					token.SHR_ASSIGN,
+					token.AND_NOT_ASSIGN:
+
+					for _, lhs := range tn.Lhs {
+						if isMatchingIdent(lhs, ident) {
+							foundMutation = true
+							return false
+						}
+					}
+				default:
+					return true
+				}
+			}
+
+			return true
+		})
+		if foundMutation {
+			return true
+		}
+	}
+	return false
+}
+
+func isMatchingIdent(n ast.Node, exp *ast.Ident) bool {
 	if n == nil {
 		return false
 	}
 	ident, ok := n.(*ast.Ident)
-	return ok && ident.Name == `_`
+	return ok && ident.Name == exp.Name
+}
+
+func isUnderscoreIdent(n ast.Node) bool {
+	return isMatchingIdent(n, &ast.Ident{
+		Name: `_`,
+	})
 }
