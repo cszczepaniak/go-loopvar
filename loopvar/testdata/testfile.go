@@ -57,6 +57,17 @@ func trickyMultiAssign2() {
 	}
 }
 
+func oneVariableIsIncrementedLaterOneIsNot() {
+	for i, v := range []int{1, 2, 3} {
+		incrementing := i
+		variable := v // want "found unnecessary loop variable capture"
+
+		incrementing++
+
+		fmt.Println(incrementing, variable)
+	}
+}
+
 func variableIsIncrementedLater() {
 	for i, v := range []int{1, 2, 3} {
 		incrementing, variable := i, v // want "found unnecessary loop variable capture"
