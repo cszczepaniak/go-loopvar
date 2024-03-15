@@ -252,7 +252,8 @@ func isMutated(stmts []ast.Stmt, ident *ast.Ident) (mut bool) {
 				}
 			case *ast.AssignStmt:
 				switch tn.Tok {
-				case token.ADD_ASSIGN,
+				case token.ASSIGN,
+					token.ADD_ASSIGN,
 					token.SUB_ASSIGN,
 					token.MUL_ASSIGN,
 					token.QUO_ASSIGN,
