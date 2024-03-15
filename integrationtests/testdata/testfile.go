@@ -99,6 +99,96 @@ func variableIsMinusAssigned() {
 	}
 }
 
+func variableIsMultiplyAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index *= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsDivideAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index /= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsModuloAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index %= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsAndAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index &= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsOrAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index |= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsXorAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index ^= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsShiftLeftAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index <<= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsShiftRightAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index >>= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
+func variableIsAndNotAssigned() {
+	for i, v := range []int{1, 2, 3} {
+		index, variable := i, v
+
+		index &^= 123
+
+		fmt.Println(index, variable)
+	}
+}
+
 func variableIsSimplyAssigned() {
 	for i, v := range []int{1, 2, 3} {
 		assigned, variable := i, v
