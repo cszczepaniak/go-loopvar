@@ -53,7 +53,13 @@ func run(p *analysis.Pass) (any, error) {
 			})
 		}
 
+		seenDiags := make(map[*analysis.Diagnostic]struct{}, len(r.diagsByVar))
 		for _, diag := range r.diagsByVar {
+			_, ok := seenDiags[diag]
+			if ok {
+				continue
+			}
+			seenDiags[diag] = struct{}{}
 			p.Report(*diag)
 		}
 	})
