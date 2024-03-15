@@ -1,13 +1,11 @@
-//go:build !exp
-
 package testdata
 
 import "fmt"
 
 func slice() {
 	for i, v := range []int{1, 2, 3} {
-		i := i
-		v := v
+		i := i // want "found unnecessary loop variable capture"
+		v := v // want "found unnecessary loop variable capture"
 
 		fmt.Println(i, v)
 	}
@@ -15,13 +13,13 @@ func slice() {
 
 func statementsInBetween() {
 	for i, v := range []int{1, 2, 3} {
-		index := i
+		index := i // want "found unnecessary loop variable capture"
 
 		for range 10 {
 		}
 
 		go func() {}()
-		val := v
+		val := v // want "found unnecessary loop variable capture"
 
 		fmt.Println(index, val)
 	}
@@ -29,7 +27,7 @@ func statementsInBetween() {
 
 func multiAssign() {
 	for i, v := range []int{1, 2, 3} {
-		idx, v := i, v
+		idx, v := i, v // want "found unnecessary loop variable capture"
 
 		fmt.Println(idx, v)
 	}
@@ -37,7 +35,7 @@ func multiAssign() {
 
 func trickyMultiAssign0() {
 	for i, v := range []int{1, 2, 3} {
-		_, anotherVar, val := i, 123, v
+		_, anotherVar, val := i, 123, v // want "found unnecessary loop variable capture"
 
 		fmt.Println(i, val, anotherVar)
 	}
@@ -45,7 +43,7 @@ func trickyMultiAssign0() {
 
 func trickyMultiAssign1() {
 	for i, v := range []int{1, 2, 3} {
-		_, index, anotherVar, val := 456, i, 123, v
+		_, index, anotherVar, val := 456, i, 123, v // want "found unnecessary loop variable capture"
 
 		fmt.Println(index, val, anotherVar)
 	}
@@ -53,7 +51,7 @@ func trickyMultiAssign1() {
 
 func trickyMultiAssign2() {
 	for _, v := range []int{1, 2, 3} {
-		_, val := func() int { return 1 }(), v
+		_, val := func() int { return 1 }(), v // want "found unnecessary loop variable capture"
 
 		fmt.Println(val)
 	}
@@ -61,7 +59,7 @@ func trickyMultiAssign2() {
 
 func variableIsIncrementedLater() {
 	for i, v := range []int{1, 2, 3} {
-		incrementing, variable := i, v
+		incrementing, variable := i, v // want "found unnecessary loop variable capture"
 
 		incrementing++
 
@@ -71,7 +69,7 @@ func variableIsIncrementedLater() {
 
 func variableIsDecrementedLater() {
 	for i, v := range []int{1, 2, 3} {
-		decrementing, variable := i, v
+		decrementing, variable := i, v // want "found unnecessary loop variable capture"
 
 		decrementing--
 
@@ -81,7 +79,7 @@ func variableIsDecrementedLater() {
 
 func variableIsPlusAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		incrementing, variable := i, v
+		incrementing, variable := i, v // want "found unnecessary loop variable capture"
 
 		incrementing += 123
 
@@ -91,7 +89,7 @@ func variableIsPlusAssigned() {
 
 func variableIsMinusAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		decrementing, variable := i, v
+		decrementing, variable := i, v // want "found unnecessary loop variable capture"
 
 		decrementing -= 123
 
@@ -101,7 +99,7 @@ func variableIsMinusAssigned() {
 
 func variableIsMultiplyAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index *= 123
 
@@ -111,7 +109,7 @@ func variableIsMultiplyAssigned() {
 
 func variableIsDivideAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index /= 123
 
@@ -121,7 +119,7 @@ func variableIsDivideAssigned() {
 
 func variableIsModuloAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index %= 123
 
@@ -131,7 +129,7 @@ func variableIsModuloAssigned() {
 
 func variableIsAndAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index &= 123
 
@@ -141,7 +139,7 @@ func variableIsAndAssigned() {
 
 func variableIsOrAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index |= 123
 
@@ -151,7 +149,7 @@ func variableIsOrAssigned() {
 
 func variableIsXorAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index ^= 123
 
@@ -161,7 +159,7 @@ func variableIsXorAssigned() {
 
 func variableIsShiftLeftAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index <<= 123
 
@@ -171,7 +169,7 @@ func variableIsShiftLeftAssigned() {
 
 func variableIsShiftRightAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index >>= 123
 
@@ -181,7 +179,7 @@ func variableIsShiftRightAssigned() {
 
 func variableIsAndNotAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		index, variable := i, v
+		index, variable := i, v // want "found unnecessary loop variable capture"
 
 		index &^= 123
 
@@ -191,7 +189,7 @@ func variableIsAndNotAssigned() {
 
 func variableIsSimplyAssigned() {
 	for i, v := range []int{1, 2, 3} {
-		assigned, variable := i, v
+		assigned, variable := i, v // want "found unnecessary loop variable capture"
 
 		assigned = 123
 
@@ -205,8 +203,8 @@ func wasABugBeforeGo122() {
 			fmt.Println(i, v)
 		}()
 
-		idx := i
-		val := v
+		idx := i // want "found unnecessary loop variable capture"
+		val := v // want "found unnecessary loop variable capture"
 
 		fmt.Println(idx, val)
 	}
@@ -215,9 +213,9 @@ func wasABugBeforeGo122() {
 func muchWhitespace() {
 	for i, v := range []int{1, 2, 3} {
 
-		i := i
+		i := i // want "found unnecessary loop variable capture"
 
-		v := v
+		v := v // want "found unnecessary loop variable capture"
 
 		fmt.Println(i, v)
 	}
@@ -225,8 +223,8 @@ func muchWhitespace() {
 
 func aMap() {
 	for k, v := range map[string]int{} {
-		k := k
-		v := v
+		k := k // want "found unnecessary loop variable capture"
+		v := v // want "found unnecessary loop variable capture"
 
 		fmt.Println(k, v)
 	}
@@ -234,8 +232,8 @@ func aMap() {
 
 func rename() {
 	for i, v := range []int{1, 2, 3} {
-		index := i
-		val := v
+		index := i // want "found unnecessary loop variable capture"
+		val := v   // want "found unnecessary loop variable capture"
 
 		fmt.Println(index, val)
 	}
@@ -244,7 +242,7 @@ func rename() {
 func address() {
 	vals := []*int{}
 	for _, v := range []int{1, 2, 3} {
-		v := v
+		v := v // want "found unnecessary loop variable capture"
 		vals = append(vals, &v)
 	}
 	_ = vals
@@ -253,7 +251,7 @@ func address() {
 func addressRename() {
 	vals := []*int{}
 	for _, v := range []int{1, 2, 3} {
-		myValue := v
+		myValue := v // want "found unnecessary loop variable capture"
 		vals = append(vals, &myValue)
 	}
 	_ = vals
@@ -261,8 +259,8 @@ func addressRename() {
 
 func renameInGoroutine() {
 	for i, v := range []int{1, 2, 3} {
-		index := i
-		val := v
+		index := i // want "found unnecessary loop variable capture"
+		val := v   // want "found unnecessary loop variable capture"
 
 		go func() {
 			fmt.Println(index, val)
@@ -272,19 +270,19 @@ func renameInGoroutine() {
 
 func kitchenSink() {
 	for i1, v1 := range []int{1, 2, 3} {
-		i1 := i1
-		val1 := v1
+		i1 := i1   // want "found unnecessary loop variable capture"
+		val1 := v1 // want "found unnecessary loop variable capture"
 
 		for i2, v2 := range []string{"foo", "bar"} {
 			// I'm not sure how we should handle such captures... I don't expect they'll be common,
 			// though.
 			varA := i1
-			anothaOne := v2
+			anothaOne := v2 // want "found unnecessary loop variable capture"
 
 			go func() {
 				for i3, v3 := range map[int]int{} {
-					my3 := i3
-					v3 := v3
+					my3 := i3 // want "found unnecessary loop variable capture"
+					v3 := v3  // want "found unnecessary loop variable capture"
 
 					fmt.Println(
 						i2,
